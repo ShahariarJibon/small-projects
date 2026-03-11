@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finger Counter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    color: #00ffcc;
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,204,0.02) 2px, rgba(0,255,204,0.02) 4px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,255,204,0.02) 2px, rgba(0,255,204,0.02) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 20px;
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    font-weight: 900;
+    letter-spacing: 0.3em;
+    color: #00ffcc;
+    text-shadow: 0 0 20px rgba(0,255,204,0.6), 0 0 40px rgba(0,255,204,0.3);
+    text-transform: uppercase;
+  }
+
+  .main-layout {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .video-wrapper {
+    position: relative;
+    border: 1px solid rgba(0,255,204,0.3);
+    box-shadow: 0 0 30px rgba(0,255,204,0.15), inset 0 0 30px rgba(0,0,0,0.5);
+  }
+
+  .video-wrapper::before,
+  .video-wrapper::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: #00ffcc;
+    border-style: solid;
+    z-index: 10;
+  }
+  .video-wrapper::before { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+  .video-wrapper::after  { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+
+  #videoElement {
+    display: block;
+    width: 480px;
+    max-width: 90vw;
+    aspect-ratio: 4/3;
+    transform: scaleX(-1);
+    background: #000;
+  }
+
+  #canvasElement {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform: scaleX(-1);
+  }
+
+  .counter-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .big-number {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(6rem, 20vw, 10rem);
+    font-weight: 900;
+    line-height: 1;
+    color: #00ffcc;
+    text-shadow:
+      0 0 10px rgba(0,255,204,1),
+      0 0 30px rgba(0,255,204,0.8),
+      0 0 60px rgba(0,255,204,0.5),
+      0 0 100px rgba(0,255,204,0.3);
+    transition: all 0.15s ease;
+    min-width: 160px;
+    text-align: center;
+  }
+
+  .big-number.pulse {
+    animation: pulse 0.3s ease;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  .word-display {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1rem, 3vw, 1.5rem);
+    letter-spacing: 0.4em;
+    color: rgba(0,255,204,0.6);
+    text-transform: uppercase;
+    min-height: 2rem;
+    text-align: center;
+  }
+
+  .hand-indicators {
+    display: flex;
+    gap: 12px;
+  }
+
+  .hand-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0,255,204,0.2);
+    border: 1px solid rgba(0,255,204,0.4);
+    transition: all 0.2s;
+  }
+
+  .hand-dot.active {
+    background: #00ffcc;
+    box-shadow: 0 0 10px #00ffcc;
+  }
+
+  .status-bar {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: rgba(0,255,204,0.4);
+    text-transform: uppercase;
+  }
+
+  .status-bar span { color: #00ffcc; }
+
+  #startBtn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 14px 40px;
+    background: transparent;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+
+  #startBtn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,255,204,0.1);
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+
+  #startBtn:hover::before { transform: translateX(0); }
+  #startBtn:hover { box-shadow: 0 0 20px rgba(0,255,204,0.4); }
+
+  .finger-visual {
+    display: flex;
+    gap: 8px;
+    height: 60px;
+    align-items: flex-end;
+  }
+
+  .finger-bar {
+    width: 18px;
+    background: rgba(0,255,204,0.15);
+    border: 1px solid rgba(0,255,204,0.3);
+    border-radius: 4px 4px 0 0;
+    transition: all 0.2s ease;
+  }
+
+  .finger-bar.up {
+    background: rgba(0,255,204,0.7);
+    box-shadow: 0 0 10px rgba(0,255,204,0.5);
+    height: 100% !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>// Finger Counter</h1>
+
+  <div id="startScreen">
+    <button id="startBtn" onclick="startCamera()">[ INITIALIZE CAMERA ]</button>
+  </div>
+
+  <div id="mainUI" style="display:none; flex-direction:column; align-items:center; gap:24px;">
+    <div class="main-layout">
+      <div class="video-wrapper">
+        <video id="videoElement" autoplay playsinline muted></video>
+        <canvas id="canvasElement"></canvas>
+      </div>
+
+      <div class="counter-panel">
+        <div class="status-bar">HANDS DETECTED: <span id="handCount">0</span></div>
+        <div class="big-number" id="fingerNumber">0</div>
+        <div class="word-display" id="fingerWord">—</div>
+        <div class="finger-visual" id="fingerVisual">
+          <div class="finger-bar" style="height:30px" data-f="0"></div>
+          <div class="finger-bar" style="height:50px" data-f="1"></div>
+          <div class="finger-bar" style="height:50px" data-f="2"></div>
+          <div class="finger-bar" style="height:50px" data-f="3"></div>
+          <div class="finger-bar" style="height:50px" data-f="4"></div>
+          <div class="finger-bar" style="height:50px" data-f="5"></div>
+          <div class="finger-bar" style="height:50px" data-f="6"></div>
+          <div class="finger-bar" style="height:50px" data-f="7"></div>
+          <div class="finger-bar" style="height:50px" data-f="8"></div>
+          <div class="finger-bar" style="height:50px" data-f="9"></div>
+          <div class="finger-bar" style="height:30px" data-f="10"></div>
+        </div>
+        <div class="hand-indicators">
+          <div class="hand-dot" id="hand1" title="Left Hand"></div>
+          <div class="hand-dot" id="hand2" title="Right Hand"></div>
+        </div>
+      </div>
+    </div>
+    <div class="status-bar" id="statusMsg">SCANNING...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+<script>
+const WORDS = ['ZERO','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE','TEN'];
+
+let lastCount = -1;
+
+function countFingers(landmarks, handedness) {
+  // Finger tip and pip landmark indices
+  const tips = [4, 8, 12, 16, 20];
+  const pips = [3, 6, 10, 14, 18];
+  let count = 0;
+
+  // Thumb: compare x position (mirrored)
+  const isRight = handedness === 'Right';
+  if (isRight) {
+    if (landmarks[tips[0]].x < landmarks[pips[0]].x) count++;
+  } else {
+    if (landmarks[tips[0]].x > landmarks[pips[0]].x) count++;
+  }
+
+  // Other 4 fingers: tip y < pip y means finger is up
+  for (let i = 1; i < 5; i++) {
+    if (landmarks[tips[i]].y < landmarks[pips[i]].y) count++;
+  }
+
+  return count;
+}
+
+async function startCamera() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('mainUI').style.display = 'flex';
+
+  const video = document.getElementById('videoElement');
+  const canvas = document.getElementById('canvasElement');
+  const ctx = canvas.getContext('2d');
+
+  const hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  hands.setOptions({
+    maxNumHands: 2,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.6
+  });
+
+  hands.onResults(results => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+    document.getElementById('handCount').textContent = numHands;
+    document.getElementById('hand1').classList.toggle('active', numHands >= 1);
+    document.getElementById('hand2').classList.toggle('active', numHands >= 2);
+
+    let totalFingers = 0;
+
+    if (numHands > 0) {
+      document.getElementById('statusMsg').textContent = 'HAND DETECTED — COUNTING FINGERS...';
+
+      results.multiHandLandmarks.forEach((landmarks, i) => {
+        const handedness = results.multiHandedness[i].label; // 'Left' or 'Right'
+        // Note: mediapipe labels are from camera's POV, but we flip video, so invert
+        const corrected = handedness === 'Left' ? 'Right' : 'Left';
+        totalFingers += countFingers(landmarks, corrected);
+
+        // Draw skeleton
+        drawConnectors(ctx, landmarks, HAND_CONNECTIONS, {color: 'rgba(0,255,204,0.4)', lineWidth: 1.5});
+        drawLandmarks(ctx, landmarks, {color: '#00ffcc', fillColor: 'rgba(0,255,204,0.3)', lineWidth: 1, radius: 4});
+      });
+
+      totalFingers = Math.min(totalFingers, 10);
+    } else {
+      document.getElementById('statusMsg').textContent = 'SHOW YOUR HAND TO THE CAMERA...';
+    }
+
+    // Update display
+    const numEl = document.getElementById('fingerNumber');
+    const wordEl = document.getElementById('fingerWord');
+
+    if (totalFingers !== lastCount) {
+      numEl.textContent = totalFingers;
+      wordEl.textContent = numHands > 0 ? WORDS[totalFingers] : '—';
+
+      numEl.classList.remove('pulse');
+      void numEl.offsetWidth;
+      numEl.classList.add('pulse');
+
+      // Update finger bars
+      const bars = document.querySelectorAll('.finger-bar');
+      bars.forEach(bar => {
+        const f = parseInt(bar.dataset.f);
+        bar.classList.toggle('up', f <= totalFingers && numHands > 0);
+      });
+
+      lastCount = totalFingers;
+    }
+  });
+
+  const camera = new Camera(video, {
+    onFrame: async () => { await hands.send({image: video}); },
+    width: 640, height: 480
+  });
+
+  camera.start();
+}
+</script>
+</body>
+</html>

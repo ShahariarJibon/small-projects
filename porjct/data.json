@@ -1,0 +1,11 @@
+{
+  "name": "Shahariar Hossain",
+  "age": 21,
+  "email": "mdshahariar021@gmail.com",
+  "isMan": true,
+  "hobbie": ["gaming", "eating", "sleeping"],
+  "address": {
+    "district": "kushtia",
+    "subDistrict": "bheramara"
+  }
+}
